@@ -1,0 +1,16 @@
+# Ignore Python artifacts
+*.pyc
+__pycache__/
+
+# Ignore Docker artifacts
+*.log
+
+# Ignore credentials and data folders
+credentials.json
+/data/
+/env/
+*.db
+*.sqlite
+*.env
+*.json
+
