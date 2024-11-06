@@ -1,9 +1,10 @@
 from flask import Flask, request, session
+from flask_session import Session
 import logging
 import os
 from twilio.twiml.messaging_response import MessagingResponse
 from typing import Dict, List
-from utils import query_chatgpt, create_prompt_mentor_bot, create_prompt_generate_business_plan, generate_business_plan_document, upload_file_to_gcs
+from utils import query_chatgpt, create_prompt_mentor_bot, split_message
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -11,7 +12,9 @@ logging.basicConfig(level=logging.INFO,
 
 # Flask app configuration
 app = Flask(__name__)
+app.config['SESSION_TYPE'] = 'filesystem'
 app.secret_key = 'secret_key1'  # Replace with a strong secret key
+Session(app)
 GCS_BUCKET_NAME = "hbs_foundry_demo2"
 
 # Flag to track if the function has already run
@@ -26,6 +29,7 @@ def setup_once():
         setup_done = True  # Ensure this block runs only once
         logging.info("Initial setup done, session cleared.")
 
+# Usage in the whatsapp_bot function
 @app.route('/whatsapp', methods=['POST'])
 def whatsapp_bot() -> str:
     """
@@ -53,22 +57,25 @@ def whatsapp_bot() -> str:
 
     # Initialize Twilio response object
     resp = MessagingResponse()
-    msg = resp.message()
-
+    
     # Check if the message contains any content
     if incoming_msg:
         logging.info("Attempting to create a response to the received message...")
         # Process the message and generate a response
         response_text, updated_conversation_history = handle_message(incoming_msg, conversation_history)
-        logging.info(f"Response created: {response_text}")
-        msg.body(response_text)
+        logging.info(f"Response created: {response_text} of length {len(response_text)}")
+
+        # Split the response text and send each part in a separate message
+        split_responses = split_message(response_text)
+        for split_response in split_responses:
+            msg = resp.message()  # Create a new message for each split part
+            msg.body(split_response)
 
         # Save the updated conversation history in the session
         session['conversation_history'] = updated_conversation_history
-        logging.info(f"Updated session['conversation_history']: {session['conversation_history']}")
     else:
         logging.info("No valid message received. Sending default error response.")
-        msg.body("I couldn't understand that. Please try again.")
+        msg = resp.message("I couldn't understand that. Please try again.")
     
     # Return TwiML XML (Twilio format)
     return str(resp)
@@ -91,8 +98,9 @@ def handle_message(message: str, conversation_history: List[Dict[str, str]]) -> 
     conversation_history.append({'role': 'user', 'content': message})
 
     # Create the next prompt for ChatGPT to determine the next question or response
-    prompt = create_prompt_mentor_bot(conversation_history)
-    logging.info(f"Generated prompt for ChatGPT: {prompt}")
+    prompt = create_prompt_mentor_bot(conversation_history, message)
+    logging.info(f"Generated prompt for ChatGPT")
+    # logging.info(f"Generated prompt for ChatGPT: {prompt}")
 
     # Query ChatGPT with the prompt
     response = query_chatgpt(prompt)

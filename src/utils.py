@@ -39,9 +39,9 @@ def query_chatgpt(prompt: str,
             model=model,
             stream=False,
             messages=[
-                {"role": "system", "content": f"MENTOR_BOT_PROMPT"},
-                {"role": "user", "content": f"Prompt: {prompt}"}
-                ],
+                {"role": "system", "content": MENTOR_BOT_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.7
         )
         # logging.info(f"response: {response} with type {type(response)}")
@@ -204,3 +204,27 @@ def generate_business_plan_document(business_plan: str, file_format: str = 'docx
             file.write(business_plan)
 
     return file_name
+
+
+def split_message(message, max_length=1000):
+    """
+    Splits a message into chunks of a specified maximum length. Adds "..." to the end of each chunk 
+    (except the last) to indicate continuation.
+
+    Args:
+        message (str): The message to be split.
+        max_length (int): The maximum allowed length for each chunk (default is 1000 characters).
+
+    Returns:
+        list of str: A list of message chunks, each within the character limit.
+    """
+
+    # Split message into chunks of `max_length`
+    chunks = [message[i:i + max_length] for i in range(0, len(message), max_length)]
+    
+    # Add "..." to all chunks except the last one to indicate continuation
+    for i in range(len(chunks) - 1):
+        chunks[i] += "..."
+    
+    return chunks
+

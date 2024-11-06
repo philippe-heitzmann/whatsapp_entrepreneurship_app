@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Dockerfile additions
 
-EXPOSE 5005
+EXPOSE 5006
 
 # Run the script when the container launches
 CMD ["python", "./src/whatsapp_bot.py"]

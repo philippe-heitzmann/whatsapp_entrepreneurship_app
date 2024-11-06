@@ -37,9 +37,8 @@ This repository creates an application allowing a user to interact with a chatbo
 
 ### 4. Testing the Bot
 1.  Use your phone to send a WhatsApp message to the Twilio Sandbox number.
-2.  Send the activation keyword provided by Twilio to start interacting with the bot.
-3.  The bot will start asking questions about your business and generate a business plan in a Google Doc once all necessary information is collected.
-4.  Once the document is generated, a download link to the business plan will be sent back to your WhatsApp conversation.
+2.  Send the activation keyword provided by Twilio to start interacting with the bot. join luck-many for this testing
+3.  Bot will start a conversation using the Mentor Bot prompting logic 
 
 ## How the Bot Functions (High-Level Overview)
 1.  The bot uses Twilio to receive and send WhatsApp messages.
