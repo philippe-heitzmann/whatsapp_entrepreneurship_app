@@ -7,6 +7,8 @@ import openai
 from google.cloud import storage
 from docx import Document
 
+from constants import MENTOR_BOT_PROMPT
+
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
 # Initialize OpenAI API
@@ -36,7 +38,10 @@ def query_chatgpt(prompt: str,
         response = client.chat.completions.create(
             model=model,
             stream=False,
-            messages=[{"role": "user", "content": f"Prompt: {prompt}"}],
+            messages=[
+                {"role": "system", "content": f"MENTOR_BOT_PROMPT"},
+                {"role": "user", "content": f"Prompt: {prompt}"}
+                ],
             temperature=0.7
         )
         # logging.info(f"response: {response} with type {type(response)}")
@@ -56,32 +61,6 @@ def create_prompt_business_plan(past_responses: List[Dict[str, str]]) -> str:
     Returns:
     str: The formatted prompt for querying ChatGPT.
     """
-    # Define the sections of the business plan
-    sections = [
-        "Business Description",
-        "Business Mission",
-        "Business goals",
-        "Target Market and Industry",
-        "Target Customer",
-    ]
-
-    # Check if all sections are completed
-    completed_sections = [
-        section for section in sections
-        if any(entry['role'] == 'user' and section in entry['content'] for entry in past_responses)
-    ]
-
-    if len(completed_sections) == len(sections):
-        return "3have_info3"
-
-    # Find the next section that needs to be filled
-    for section in sections:
-        if section not in completed_sections:
-            next_section = section
-            break
-
-    # Create the prompt asking the next question
-    #     # Start every message with an encouraging exclamation such as "That's great!", "That's awesome", "Really cool!", "Great!", to make the conversation more engaging.
 
     prompt = f"""
     You are an AI expert at collecting relevant information from entrepreneurs to create a business plan. 
@@ -94,6 +73,42 @@ def create_prompt_business_plan(past_responses: List[Dict[str, str]]) -> str:
 
     Ensure that you ask specific questions and try to minimize follow-up questions.
     """
+
+    return prompt
+
+
+def format_conversation_history(conversation_history):
+    formatted_history = ""
+    for message in conversation_history:
+        role = message['role']
+        content = message['content']
+        formatted_history += f"{role.capitalize()}: {content}\n"
+    return formatted_history    
+
+
+def create_prompt_mentor_bot(past_responses: List[Dict[str, str]],
+                             current_question) -> str:
+    """
+    Creates a prompt for ChatGPT to determine the next question to ask the user
+    based on their previous responses and the sections of a business plan.
+
+    Parameters:
+    past_responses (List[Dict[str, str]]): List containing user's previous responses.
+
+    Returns:
+    str: The formatted prompt for querying ChatGPT.
+    """
+
+    formatted_history = format_conversation_history(past_responses)
+
+    prompt = (
+    "You are MentorGPT, an Entrepreneurship Mentor with over 20 years of experience guiding entrepreneurs.\n"
+    "Your expertise includes advising on entrepreneurial models, business concepts, financial accounting, scaling strategies, go-to-market strategies, marketing, and regional business contexts.\n"
+    "Answer the following question from the user, taking into account the information provided in the conversation so far.\n"
+    f"{current_question}"
+    "Conversation history:\n"
+    f"{formatted_history}\n"
+    )
 
     return prompt
 

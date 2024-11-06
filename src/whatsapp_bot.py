@@ -3,7 +3,7 @@ import logging
 import os
 from twilio.twiml.messaging_response import MessagingResponse
 from typing import Dict, List
-from utils import query_chatgpt, create_prompt_business_plan, create_prompt_generate_business_plan, generate_business_plan_document, upload_file_to_gcs
+from utils import query_chatgpt, create_prompt_mentor_bot, create_prompt_generate_business_plan, generate_business_plan_document, upload_file_to_gcs
 
 # Configure logging
 logging.basicConfig(level=logging.INFO,
@@ -59,12 +59,13 @@ def whatsapp_bot() -> str:
     if incoming_msg:
         logging.info("Attempting to create a response to the received message...")
         # Process the message and generate a response
-        response_text = handle_message(incoming_msg, conversation_history)
+        response_text, updated_conversation_history = handle_message(incoming_msg, conversation_history)
         logging.info(f"Response created: {response_text}")
         msg.body(response_text)
 
         # Save the updated conversation history in the session
-        session['conversation_history'] = conversation_history
+        session['conversation_history'] = updated_conversation_history
+        logging.info(f"Updated session['conversation_history']: {session['conversation_history']}")
     else:
         logging.info("No valid message received. Sending default error response.")
         msg.body("I couldn't understand that. Please try again.")
@@ -90,7 +91,7 @@ def handle_message(message: str, conversation_history: List[Dict[str, str]]) -> 
     conversation_history.append({'role': 'user', 'content': message})
 
     # Create the next prompt for ChatGPT to determine the next question or response
-    prompt = create_prompt_business_plan(conversation_history)
+    prompt = create_prompt_mentor_bot(conversation_history)
     logging.info(f"Generated prompt for ChatGPT: {prompt}")
 
     # Query ChatGPT with the prompt
@@ -100,27 +101,9 @@ def handle_message(message: str, conversation_history: List[Dict[str, str]]) -> 
     # Add ChatGPT's response to conversation history
     conversation_history.append({'role': 'assistant', 'content': response})
 
-    # If ChatGPT determines enough information is gathered
-    if "3have_info3" in response:
-        # Generate full business plan
-        business_plan_prompt = create_prompt_generate_business_plan(conversation_history)
-        full_business_plan = query_chatgpt(business_plan_prompt)
-        logging.info(f"Generated business plan: {full_business_plan}")
-
-        # Generate a document and upload it to GCS
-        document_file_path = generate_business_plan_document(full_business_plan, file_format='docx')
-        blob_name = os.path.basename(document_file_path)  # Use the local file name for GCS blob
-        public_url = upload_file_to_gcs(document_file_path, GCS_BUCKET_NAME, blob_name)
-
-        # Check if the document was uploaded successfully
-        if public_url:
-            return f"Thank you for providing all the necessary information. Your business plan has been generated. You can download it here: {public_url}"
-        else:
-            return "There was an issue generating your business plan. Please try again later."
-
     # Otherwise, return the next question from ChatGPT
-    return response
+    return response, conversation_history
 
 if __name__ == '__main__':
     # Run the Flask app in debug mode for development
-    app.run(debug=True, host="0.0.0.0", port=5005)
+    app.run(debug=True, host="0.0.0.0", port=5006)
