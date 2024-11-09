@@ -23,6 +23,19 @@ setup_done = False
 
 @app.before_request
 def setup_once():
+    """
+    Flask before_request handler that performs one-time initialization when the server starts.
+    
+    This function runs before every request but uses a global flag to ensure the setup
+    code only executes once when the server first starts. It:
+    1. Clears all Flask session data to ensure a clean state
+    2. Sets a global flag to prevent repeated execution
+    3. Logs the completion of the initialization
+    
+    The primary purpose is to reset any stored conversation histories and thread IDs
+    when the server restarts, preventing any stale session data from affecting new
+    conversations.
+    """
     global setup_done
     if not setup_done:
         # Run your one-time setup code here
