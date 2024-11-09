@@ -228,3 +228,68 @@ def split_message(message, max_length=1000):
     
     return chunks
 
+
+
+def query_chatgpt_assistant(question: str, assistant_id: str = "asst_xUtTiMSkYXGo0zidNvUpWJ38", thread_id: str = None) -> (str, str):
+    """
+    Query a custom assistant using OpenAI's client by creating a message in a thread,
+    running the assistant, and retrieving the response. If no thread exists, a new one
+    is created.
+
+    Args:
+        client (OpenAIClient): The OpenAI client instance.
+        question (str): The question or prompt to send to the assistant.
+        assistant_id (str): The unique identifier for the custom assistant created on OpenAI.
+        thread_id (str): Optional existing thread ID for the conversation. If None, a new thread is created.
+
+    Returns:
+        tuple: (assistant's response, thread ID used in the interaction)
+
+    Raises:
+        Exception: If an error occurs during message creation, assistant run, or message retrieval.
+    """
+    try:
+        # Create a new thread if one doesn't exist
+        if thread_id is None:
+            thread = client.beta.threads.create()
+            thread_id = thread.id
+            logging.info(f"New thread created with ID: {thread_id}")
+
+        # Add the user's message to the thread
+        client.beta.threads.messages.create(
+            thread_id=thread_id,
+            role="user",
+            content=question
+        )
+
+        # Run the assistant on the specified thread
+        run = client.beta.threads.runs.create(
+            thread_id=thread_id,
+            assistant_id=assistant_id
+        )
+
+        # Poll the run status until the assistant completes processing
+        while True:
+            run_status = client.beta.threads.runs.retrieve(
+                thread_id=thread_id,
+                run_id=run.id
+            )
+            
+            if run_status.status == 'completed':
+                # Retrieve assistant's response
+                messages = client.beta.threads.messages.list(
+                    thread_id=thread_id
+                )
+
+                assistant_response = ""
+                for msg in messages.data:
+                    if msg.role == "assistant":
+                        content = msg.content[0].text.value
+                        assistant_response = f"{content}\n"
+                        break
+
+                return assistant_response, thread_id
+
+    except Exception as e:
+        logging.error(f"Error querying the assistant: {e}")
+        raise

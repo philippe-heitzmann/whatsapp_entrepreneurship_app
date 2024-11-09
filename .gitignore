@@ -13,4 +13,4 @@ credentials.json
 *.sqlite
 *.env
 *.json
-
+*.mov
