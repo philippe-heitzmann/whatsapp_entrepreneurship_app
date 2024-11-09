@@ -230,8 +230,7 @@ def split_message(message, max_length=1000):
 
 
 
-def query_chatgpt_assistant(question: str, 
-                            assistant_id: str = "asst_xUtTiMSkYXGo0zidNvUpWJ38", thread_id: str = None):
+def query_chatgpt_assistant(question: str, assistant_id: str = "asst_xUtTiMSkYXGo0zidNvUpWJ38", thread_id: str = None) -> (str, str):
     """
     Query a custom assistant using OpenAI's client by creating a message in a thread,
     running the assistant, and retrieving the response. If no thread exists, a new one
